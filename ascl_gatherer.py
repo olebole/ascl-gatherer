@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import json
 import os
 import datetime
@@ -10,9 +12,10 @@ from BeautifulSoup import BeautifulSoup
 def parse_pkg_html(ref):
     pg = BeautifulSoup(urllib2.urlopen('http://ascl.net/' + ref))
     item = pg.body.find('div', attrs={'class':'item'})
-    id = item.find('span', attrs={'class':'ascl_id'}).text
-    if "submitted" in id:
-        id = None
+    ascl_id = item.find('span', attrs={'class':'ascl_id'})
+    ascl_id = ascl_id.text
+    if "submitted" in ascl_id:
+        ascl_id = None
     title = item.find('span', attrs={'class':'title'}).text
     authors = item.find('div', attrs={'class':'credit'}).text
     abstract = item.find('div', attrs={'class':'abstract'}).text
@@ -39,8 +42,8 @@ def parse_pkg_html(ref):
     else:
         name = None
     return {
-        'ascl_id': id,
-        'ascl_url': 'http://ascl.net' + ref,
+        'ascl_id': ascl_id,
+        'ascl_url': 'http://ascl.net/' + ref,
         'ascl_code_id': fbref,
         'name': name,
         'title': title,
@@ -52,7 +55,7 @@ def parse_pkg_html(ref):
         }
 
 def parse_index_html(limit = 100):
-    url = 'http://ascl.net/code/all/page/1/limit/{}/order/date/listmode/compact/dir/desc'.format(limit)
+    url = 'http://ascl.net/code/all/page/1/limit/{0}/order/date/listmode/compact/dir/desc'.format(limit)
     parsed_html = BeautifulSoup(urllib2.urlopen(url))
     return ((i.find('span', attrs={'class':'ascl_id'}).text,
              i.find('span', attrs={'class':'title'}).find('a')['href'][1:])
@@ -72,10 +75,12 @@ def mail_entry(pkg, accepted):
     if len(pkg['reference']) > 0:
            txt += 'Ref:  ' + '\n      '.join(pkg['reference'])+'\n'
     txt += 'Url:  ' + pkg['ascl_url']
+    txt += '\n.\n'
     msg = email.mime.text.MIMEText(txt)
-    subject = pkg['ascl_id'] + ' '
     if pkg['name'] is not None:
-        subject += pkg['name']
+        subject = pkg['name']
+    else:
+        subject = pkg['ascl_id']
     if pkg['title'].strip() != pkg['name'].strip():
         subject += ': ' + pkg['title']
     if accepted:
@@ -84,7 +89,9 @@ def mail_entry(pkg, accepted):
     msg['From'] = '; '.join(pkg['authors'])
     msg['Date'] = email.utils.formatdate()
     msg['Newsgroups'] = 'ascl.packages'
-    print msg
+    p = os.popen('/usr/sbin/snstore', 'w')
+    p.write(str(msg))
+    p.close()
 
 def update_database(db, limit = 100, newentryhandler = None):
     changed = 0
@@ -108,13 +115,13 @@ def update_json(fname):
         with open(fname) as fp:
             pkgs = json.load(fp)
         changed = update_database(pkgs, 100, mail_entry)
-    except:
+    except IOError:
         pkgs = dict()
         changed = update_database(pkgs, -1, print_entry)
     if changed:
-        with open('%s.new' % fname, 'w') as fp:
+        with open('%s' % fname, 'w') as fp:
             json.dump(pkgs, fp, indent=4, sort_keys = True)
             fp.flush()
-        os.rename('%s.new' % fname, fname)
+#        os.rename('%s.new' % fname, fname)
 
-update_json('ascl.json')
+update_json('/home/ole/public_html/ascl.json')
