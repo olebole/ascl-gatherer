@@ -75,8 +75,7 @@ def mail_entry(pkg, accepted):
     if len(pkg['reference']) > 0:
            txt += 'Ref:  ' + '\n      '.join(pkg['reference'])+'\n'
     txt += 'Url:  ' + pkg['ascl_url']
-    txt += '\n.\n'
-    msg = email.mime.text.MIMEText(txt)
+    msg = email.mime.text.MIMEText(txt, 'plain', 'UTF-8')
     if pkg['name'] is not None:
         subject = pkg['name']
     else:
@@ -91,6 +90,7 @@ def mail_entry(pkg, accepted):
     msg['Newsgroups'] = 'ascl.packages'
     p = os.popen('/usr/sbin/snstore', 'w')
     p.write(str(msg))
+    p.write('\n.\n')
     p.close()
 
 def update_database(db, limit = 100, newentryhandler = None):
@@ -122,6 +122,5 @@ def update_json(fname):
         with open('%s' % fname, 'w') as fp:
             json.dump(pkgs, fp, indent=4, sort_keys = True)
             fp.flush()
-#        os.rename('%s.new' % fname, fname)
 
 update_json('/home/ole/public_html/ascl.json')
