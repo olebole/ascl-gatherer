@@ -20,13 +20,13 @@ def parse_pkg_html(ref):
     authors = item.find('div', attrs={'class':'credit'}).text
     abstract = item.find('div', attrs={'class':'abstract'}).text
     sites = item.find('dl', attrs={'class':'sites'})
-    site = sites.find(text='Site:')
+    site = sites.find(text='Code site:')
     if site is not None:
         site = [a['href']
                 for a in site.parent.nextSibling.nextSibling('a')]
     else:
         site = []
-    reference = sites.find(text='Ref:')
+    reference = sites.find(text='Appears in:')
     if reference is not None:
         reference = [a['href']
                      for a in reference.parent.nextSibling.nextSibling('a')]
